@@ -14,6 +14,7 @@ my (%attribute, %cumulative, %anticumulative, %restricted, %private, %overload);
 
 my @exported_subs = qw(
     new
+    can
     DESTROY
     AUTOLOAD
     _DUMP
@@ -553,31 +554,28 @@ sub AUTOLOAD {
     croak qq{Can't locate $type method "$method_name" via package "$package_name"};
 }
 
-{
-    my $real_can = \&UNIVERSAL::can;
-    no warnings 'redefine', 'once';
-    *UNIVERSAL::can = sub {
-        my ($invocant, $method_name) = @_;
+my $real_can = \&UNIVERSAL::can;
+sub can {
+    my ($invocant, $method_name) = @_;
 
-        if ( defined $invocant ) {
-            if (my $sub_ref = $real_can->(@_)) {
-                return $sub_ref;
-            }
+    if ( defined $invocant ) {
+        if (my $sub_ref = $real_can->(@_)) {
+            return $sub_ref;
+        }
 
-            for my $parent_class ( _hierarchy_of(ref $invocant || $invocant) ) {
-                no strict 'refs';
-                if (my $automethod_ref = *{$parent_class.'::AUTOMETHOD'}{CODE}) {
-                    local $CALLER::_ = $_;
-                    local $_ = $method_name;
-                    if (my $method_impl = $automethod_ref->(@_)) {
-                        return sub { my $inv = shift; $inv->$method_name(@_) }
-                    }
+        for my $parent_class ( _hierarchy_of(ref $invocant || $invocant) ) {
+            no strict 'refs';
+            if (my $automethod_ref = *{$parent_class.'::AUTOMETHOD'}{CODE}) {
+                local $CALLER::_ = $_;
+                local $_ = $method_name;
+                if (my $method_impl = $automethod_ref->(@_)) {
+                    return sub { my $inv = shift; $inv->$method_name(@_) }
                 }
             }
         }
+    }
 
-        return undef;
-    };
+    return undef;
 }
 
 package Class::Std::SCR;
