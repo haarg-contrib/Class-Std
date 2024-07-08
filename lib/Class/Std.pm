@@ -576,7 +576,7 @@ sub AUTOLOAD {
             }
         }
 
-        return;
+        return undef;
     };
 }
 

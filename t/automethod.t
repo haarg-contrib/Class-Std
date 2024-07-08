@@ -1,3 +1,6 @@
+package Empty;
+use Class::Std;
+
 package Common;
 use Class::Std;
 {
@@ -36,6 +39,9 @@ package Qux;
 
 package main;
 use Test::More 'no_plan';
+
+my @return = Empty->can('baz');
+is_deeply( \@return, [undef],                => 'can always returns a single result' );
 
 my $meth_ref;
 
